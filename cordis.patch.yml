@@ -1,0 +1,6 @@
+- insert:
+    - id: quiz
+      name: dsh-quiz
+      config:
+        maxDrafts: 50
+        maxQuestionsPerBatch: 10
