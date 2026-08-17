@@ -63,7 +63,7 @@ npx @deepseek-ai/dsh web
 ```sh
 pnpm install
 pnpm pack
-npx @deepseek-ai/dsh plugin --profile web add ./dsh-quiz-0.1.1.tgz
+npx @deepseek-ai/dsh plugin --profile web add ./dsh-quiz-0.1.2.tgz
 npx @deepseek-ai/dsh web
 ```
 

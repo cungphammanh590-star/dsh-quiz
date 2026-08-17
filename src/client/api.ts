@@ -1,8 +1,6 @@
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
 import type { QuizQuestion } from '../model.ts'
-
-const QUIZ_READ_CHANNEL = '/dsh-quiz/read'
-const QUIZ_WRITE_CHANNEL = '/dsh-quiz/write'
+import { QUIZ_READ_CHANNEL, QUIZ_WRITE_CHANNEL } from '../protocol.ts'
 
 export interface QuizAnswerResult {
   correct: boolean

@@ -4,10 +4,8 @@ import type { RpcResult } from '@deepseek-ai/dsh-host-apiproxy/api'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent'
 import { answerIsCorrect } from './model.ts'
+import { QUIZ_READ_CHANNEL, QUIZ_WRITE_CHANNEL } from './protocol.ts'
 import type { QuizStore } from './store.ts'
-
-export const QUIZ_READ_CHANNEL = '/dsh-quiz/read'
-export const QUIZ_WRITE_CHANNEL = '/dsh-quiz/write'
 
 function success(value: unknown): RpcResult<unknown> { return { ok: true, value } }
 function failure(error: unknown): RpcResult<unknown> {
