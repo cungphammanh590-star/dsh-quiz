@@ -2,6 +2,14 @@
   "name": "dsh-quiz",
   "version": "0.1.1",
   "description": "Turn DeepSeek Harness conversations into user-curated quiz questions.",
+  "homepage": "https://github.com/cungphammanh590-star/dsh-quiz#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cungphammanh590-star/dsh-quiz.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cungphammanh590-star/dsh-quiz/issues"
+  },
   "keywords": [
     "deepseek-harness",
     "dsh",
