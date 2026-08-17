@@ -34,24 +34,28 @@
 
 ## 安装
 
-### 从 GitHub 安装
+### 推荐：从 GitHub 安装
+
+无需预先全局安装 `dsh` 命令。进入任意目录后运行：
 
 ```sh
-dsh plugin --profile web add github:cungphammanh590-star/dsh-quiz
-dsh --profile web
+npx @deepseek-ai/dsh plugin --profile web add github:cungphammanh590-star/dsh-quiz
+npx @deepseek-ai/dsh web
 ```
 
-GitHub 安装会执行仓库的 `prepare` 构建脚本。若 pnpm 阻止依赖包运行构建脚本，请按终端提示批准所需构建后重试。
+GitHub 安装会执行仓库的 `prepare` 构建脚本。pnpm 10 及更高版本默认可能阻止 Git 依赖执行构建；首次安装失败时，请按照 DSH 在终端给出的提示，把 `dsh-quiz` 加入对应 Web profile 的 `pnpm-workspace.yaml` 中的 `allowBuilds`，然后重新运行安装命令。只应为你信任的插件源码授予构建权限。
 
 ### 从本地源码安装
+
+`.` 表示运行命令时所在的插件目录，因此以下命令必须在克隆后的 `dsh-quiz` 目录执行：
 
 ```sh
 git clone https://github.com/cungphammanh590-star/dsh-quiz.git
 cd dsh-quiz
 pnpm install
 pnpm run verify
-dsh plugin --profile web add .
-dsh --profile web
+npx @deepseek-ai/dsh plugin --profile web add .
+npx @deepseek-ai/dsh web
 ```
 
 ### 从 tarball 安装
@@ -59,9 +63,27 @@ dsh --profile web
 ```sh
 pnpm install
 pnpm pack
-dsh plugin --profile web add ./dsh-quiz-0.1.1.tgz
-dsh --profile web
+npx @deepseek-ai/dsh plugin --profile web add ./dsh-quiz-0.1.1.tgz
+npx @deepseek-ai/dsh web
 ```
+
+### 使用 DeepSeek Harness 源码仓库
+
+如果你已经克隆并构建了 DeepSeek Harness，可以从 Harness 仓库运行它的 `pnpm dsh` 脚本。安装独立插件时使用插件的绝对路径：
+
+```sh
+cd /path/to/deepseek-harness
+pnpm install
+pnpm run build
+pnpm dsh plugin --profile web add /absolute/path/to/dsh-quiz
+pnpm dsh web
+```
+
+插件不需要复制进 DeepSeek Harness 仓库。DSH 会把独立插件安装到指定 profile，并加载插件声明的 `cordis.patch.yml`。
+
+### 为什么终端提示 `command not found: dsh`
+
+裸 `dsh ...` 命令只适用于已经把 DSH CLI 全局安装到 `PATH` 的环境。普通用户请使用 `npx @deepseek-ai/dsh ...`；从 DeepSeek Harness 源码运行时请使用 `pnpm dsh ...`。
 
 安装后刷新 DSH Web 页面。左侧出现“题库”入口，并且 AI 回答下方出现“出题”按钮，即表示插件已启用。
 
@@ -116,8 +138,8 @@ dsh --profile web
 确认插件安装到了 `web` profile，然后重启 DSH 并刷新浏览器：
 
 ```sh
-dsh plugin --profile web add github:cungphammanh590-star/dsh-quiz
-dsh --profile web
+npx @deepseek-ai/dsh plugin --profile web add github:cungphammanh590-star/dsh-quiz
+npx @deepseek-ai/dsh web
 ```
 
 ### 出题后没有生成题目
