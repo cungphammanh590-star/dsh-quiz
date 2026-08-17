@@ -97,9 +97,13 @@ function QuestionCard({ question, answer, save, bankChanged }: { question: QuizC
   )
 }
 
+export function QuizPractice({ questions, answer, save, bankChanged }: { questions: QuizCardQuestion[] } & QuizCardInjected): JSX.Element {
+  return <div className={css.quizStack}>{questions.map(question => <QuestionCard key={question.id} question={question} answer={answer} save={save} bankChanged={bankChanged} />)}</div>
+}
+
 export function QuizToolView({ block, answer, save, bankChanged }: Props): JSX.Element {
   const questions = useMemo(() => questionsFrom(block), [block])
   if (questions === null) return <div className={css.quizLoading}>正在生成练习题…</div>
   if (questions.length === 0) return <div className={css.error}>题目生成失败，无法读取题目数据。</div>
-  return <div className={css.quizStack}>{questions.map(question => <QuestionCard key={question.id} question={question} answer={answer} save={save} bankChanged={bankChanged} />)}</div>
+  return <QuizPractice questions={questions} answer={answer} save={save} bankChanged={bankChanged} />
 }

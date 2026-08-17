@@ -1,6 +1,6 @@
 import { createRoot, type Root } from 'react-dom/client'
 import type { ConnectionHandle } from '@deepseek-ai/dsh-client-connection/client'
-import type { ClientContext, ISessions, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-tool/client'
 import { QuizClient } from './api.ts'
@@ -9,30 +9,55 @@ import { QuizBank } from './QuizBank.tsx'
 import { QuizToolView, type QuizCardInjected } from './QuizCard.tsx'
 import css from './quiz.module.css'
 
-export const inject = ['slots', 'sessions', 'connection', 'conversation']
+export const inject = ['slots', 'connection']
 
-type QuizContext = Omit<ClientContext, 'connection' | 'sessions'> & {
+type QuizContext = Omit<ClientContext, 'connection'> & {
   connection: ConnectionHandle
-  sessions: ISessions
 }
 
-interface ConversationSender { send(text: string): Promise<void> }
-
-function questionPrompt(source: string, options: { type: 'single' | 'multiple' | 'true_false' | 'mixed'; count: number; difficulty: 'easy' | 'medium' | 'hard' }): string {
-  const type = options.type === 'single' ? '单选题' : options.type === 'multiple' ? '多选题' : options.type === 'true_false' ? '判断题' : '混合题型'
-  const difficulty = options.difficulty === 'easy' ? '简单' : options.difficulty === 'hard' ? '困难' : '适中'
-  return `请只根据下面引用的助手回答，生成 ${options.count} 道${difficulty}${type}。必须调用 quiz_create_draft 创建题目；不要在正文中泄露答案。\n\n<quoted_assistant_answer>\n${source.slice(0, 16000)}\n</quoted_assistant_answer>`
+export interface PracticeState {
+  status: 'idle' | 'loading' | 'ready' | 'error'
+  questions: import('./QuizCard.tsx').QuizCardQuestion[]
+  error?: string
 }
 
 class BankController {
   private open = false
   private version = 0
+  private practice: PracticeState = { status: 'idle', questions: [] }
+  private generation: AbortController | undefined
   private readonly listeners = new Set<() => void>()
   subscribe(listener: () => void): () => void { this.listeners.add(listener); return () => this.listeners.delete(listener) }
-  snapshot(): { open: boolean; version: number } { return { open: this.open, version: this.version } }
+  snapshot(): { open: boolean; version: number; practice: PracticeState } { return { open: this.open, version: this.version, practice: this.practice } }
   toggle(): void { this.open = !this.open; this.emit() }
-  close(): void { if (this.open) { this.open = false; this.emit() } }
+  close(): void {
+    this.generation?.abort()
+    this.generation = undefined
+    if (this.open) { this.open = false; this.emit() }
+  }
   changed(): void { this.version += 1; this.emit() }
+  async generate(client: QuizClient, sessionId: string, messageId: string, options: Parameters<QuizClient['generate']>[2]): Promise<void> {
+    this.generation?.abort()
+    const controller = new AbortController()
+    this.generation = controller
+    this.open = true
+    this.practice = { status: 'loading', questions: [] }
+    this.emit()
+    try {
+      const questions = await client.generate(sessionId, messageId, options, controller.signal)
+      if (this.generation !== controller) return
+      this.practice = { status: 'ready', questions }
+    } catch (reason) {
+      if (this.generation !== controller || controller.signal.aborted) return
+      this.practice = { status: 'error', questions: [], error: reason instanceof Error ? reason.message : String(reason) }
+      throw reason
+    } finally {
+      if (this.generation === controller) {
+        this.generation = undefined
+        this.emit()
+      }
+    }
+  }
   private emit(): void { for (const listener of this.listeners) listener() }
 }
 
@@ -68,7 +93,7 @@ function mountBank(ctx: QuizContext, client: QuizClient, controller: BankControl
     const state = controller.snapshot()
     if (entry !== undefined) entry.dataset.active = state.open ? 'true' : 'false'
     if (panel !== undefined) panel.style.display = state.open ? 'block' : 'none'
-    if (root !== undefined && state.open) root.render(<QuizBank client={client} version={state.version} onClose={() => controller.close()} />)
+    if (root !== undefined && state.open) root.render(<QuizBank client={client} version={state.version} practice={state.practice} onBankChanged={() => controller.changed()} onClose={() => controller.close()} />)
   }
   const observer = new MutationObserver(ensure); observer.observe(document.body, { childList: true, subtree: true })
   const unsubscribe = controller.subscribe(render); ensure()
@@ -83,14 +108,7 @@ export function apply(rawContext: unknown): void {
   ctx.slots.inject('conversation.chat.assistant-actions', () => ctx.slots.register({
     name: 'conversation.chat.assistant-actions', id: 'quiz-create', order: 70,
     inject: (sessionId: SessionId): QuizActionInjected => ({
-      createQuiz: async (messageId, options) => {
-        const source = await client.assistantMessage(String(sessionId), String(messageId))
-        if (source === null) throw new Error('无法读取这条回答，请刷新后重试。')
-        const scoped = ctx.sessions.scope(sessionId)
-        const conversation = scoped?.get('conversation') as ConversationSender | undefined
-        if (conversation === undefined) throw new Error('当前会话尚未准备好。')
-        await conversation.send(questionPrompt(source.text, options))
-      },
+      createQuiz: (messageId, options) => bank.generate(client, String(sessionId), messageId, options),
     }),
   }, QuizAction))
 

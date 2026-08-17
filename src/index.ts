@@ -12,16 +12,22 @@ export { answerIsCorrect, normalizeQuestion } from './model.ts'
 export type { Difficulty, QuestionDraftInput, QuizQuestion, QuizType } from './model.ts'
 
 export const name = 'quiz'
-export const inject = ['storageDomain', 'systemPrompt', 'tools']
+export const inject = ['storageDomain', 'systemPrompt', 'tools', 'llm']
 
 export interface Config {
   maxDrafts?: number
   maxQuestionsPerBatch?: number
+  maxSourceChars?: number
+  maxGenerationTokens?: number
+  generationTimeoutMs?: number
 }
 
 export const Config: z<Config> = z.object({
   maxDrafts: z.number().step(1).min(1).max(500).default(50),
   maxQuestionsPerBatch: z.number().step(1).min(1).max(20).default(10),
+  maxSourceChars: z.number().step(1).min(1000).max(100000).default(16000),
+  maxGenerationTokens: z.number().step(1).min(256).max(16384).default(4096),
+  generationTimeoutMs: z.number().step(1).min(1000).max(300000).default(60000),
 })
 
 const QUESTION_SCHEMA = {
@@ -106,11 +112,17 @@ function publicQuestion(question: QuizQuestion, revealAnswer: boolean): Record<s
 export async function apply(ctx: Context, config: Config): Promise<void> {
   const maxDrafts = config.maxDrafts ?? 50
   const maxQuestionsPerBatch = config.maxQuestionsPerBatch ?? 10
+  const generationPolicy = {
+    maxQuestions: maxQuestionsPerBatch,
+    maxSourceChars: config.maxSourceChars ?? 16000,
+    maxOutputTokens: config.maxGenerationTokens ?? 4096,
+    timeoutMs: config.generationTimeoutMs ?? 60000,
+  }
   const domain = await ctx.storageDomain.open(quizDomainSpec)
   ctx.effect(() => () => domain.close())
   const store = new QuizStore(domain, maxDrafts)
   ctx.inject(['agents', 'connection'], (webCtx) => {
-    registerQuizRpc(webCtx, webCtx.connection, store)
+    registerQuizRpc(webCtx, webCtx.connection, store, generationPolicy)
   })
 
   ctx.systemPrompt.section({

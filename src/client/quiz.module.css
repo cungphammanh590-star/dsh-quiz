@@ -49,6 +49,16 @@
 .reviewFilter { display:flex;align-items:center;gap:8px;width:max-content;color:var(--dsw-alias-label-secondary,#aaa);font-size:13px;cursor:pointer; }
 .reviewFilter input { width:15px;height:15px;margin:0;accent-color:#5d76dc; }
 .bankBody { min-height:0;flex:1;overflow:auto;padding-top:16px; }
+.sectionHeading { display:flex;align-items:center;justify-content:space-between;margin:0 0 10px;color:var(--dsw-alias-label-primary,#f5f5f5);font-size:12px;font-weight:700; }
+.sectionHeading small { color:var(--dsw-alias-label-tertiary,#85858b);font-size:11px;font-weight:500; }
+.practiceSection { margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--dsw-alias-stroke-subtle,#303034); }
+.practiceLoading { display:flex;align-items:center;gap:12px;border:1px solid rgb(93 118 220 / 30%);border-radius:12px;padding:14px;background:rgb(93 118 220 / 8%); }
+.practiceLoading>span { color:#7086e8;font-size:20px;animation:dqPulse 1.4s ease-in-out infinite; }
+.practiceLoading strong { display:block;font-size:13px; }
+.practiceLoading p { margin:4px 0 0;color:var(--dsw-alias-label-secondary,#aaa);font-size:11px; }
+.practiceSection .quizStack { width:100%;margin:0; }
+.practiceSection .quizCard { padding:14px;box-shadow:none; }
+@keyframes dqPulse { 50% { opacity:.35;transform:scale(.88) } }
 .bankList { display:grid;grid-template-columns:1fr;gap:12px; }
 .bankItem { border:1px solid var(--dsw-alias-stroke-subtle);border-radius:13px;background:var(--dsw-alias-bg-layer-1);padding:16px; }
 .bankItem h3 { margin-top:10px; }

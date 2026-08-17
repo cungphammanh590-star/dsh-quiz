@@ -5,6 +5,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent'
 import { answerIsCorrect } from './model.ts'
 import { QUIZ_READ_CHANNEL, QUIZ_WRITE_CHANNEL } from './protocol.ts'
+import { generateQuizDrafts, type QuizGenerationPolicy } from './generator.ts'
 import type { QuizStore } from './store.ts'
 
 function success(value: unknown): RpcResult<unknown> { return { ok: true, value } }
@@ -31,7 +32,7 @@ function assistantMessageText(ctx: Context, sessionId: string, messageId: string
   return null
 }
 
-export function registerQuizRpc(ctx: Context, connection: HostConnectionHandle, store: QuizStore): void {
+export function registerQuizRpc(ctx: Context, connection: HostConnectionHandle, store: QuizStore, generationPolicy: QuizGenerationPolicy): void {
   connection.rpc.handle(QUIZ_READ_CHANNEL, async (endpoint, rawPayload) => {
     try {
       const payload = payloadObject(rawPayload)
@@ -51,10 +52,19 @@ export function registerQuizRpc(ctx: Context, connection: HostConnectionHandle, 
     }
   }, { authority: 'trusted-host' })
 
-  connection.rpc.handle(QUIZ_WRITE_CHANNEL, async (endpoint, rawPayload) => {
+  connection.rpc.handle(QUIZ_WRITE_CHANNEL, async (endpoint, rawPayload, signal) => {
     try {
       const payload = payloadObject(rawPayload)
       const quizId = String(payload.quizId ?? '')
+      if (endpoint === 'generate') {
+        return success(await generateQuizDrafts(ctx, store, {
+          sessionId: String(payload.sessionId ?? ''),
+          messageId: String(payload.messageId ?? ''),
+          type: String(payload.type ?? '') as 'single' | 'multiple' | 'true_false' | 'mixed',
+          count: Number(payload.count),
+          difficulty: String(payload.difficulty ?? '') as 'easy' | 'medium' | 'hard',
+        }, signal, generationPolicy))
+      }
       if (endpoint === 'answer') {
         const question = store.get(quizId)
         if (question === undefined) throw new Error(`quiz question ${JSON.stringify(quizId)} was not found`)

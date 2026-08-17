@@ -7,6 +7,8 @@
 ## 功能
 
 - 在每条已完成的 AI 回答下方显示“出题”按钮。
+- 点击后在右侧抽屉后台生成并展示题目，不向当前对话追加消息，也不创建新的可见会话。
+- 出题期间可以继续当前话题；关闭抽屉会取消仍在运行的生成请求。
 - 支持单选题、多选题、判断题和混合题。
 - 可选择题目数量与难度。
 - 使用原生单选框和复选框作答，提交后即时判题并显示解析。
@@ -63,7 +65,7 @@ npx @deepseek-ai/dsh web
 ```sh
 pnpm install
 pnpm pack
-npx @deepseek-ai/dsh plugin --profile web add ./dsh-quiz-0.1.2.tgz
+npx @deepseek-ai/dsh plugin --profile web add ./dsh-quiz-0.2.0.tgz
 npx @deepseek-ai/dsh web
 ```
 
@@ -91,8 +93,8 @@ pnpm dsh web
 
 1. 在 DSH Web 中提问并等待 AI 完成回答。
 2. 点击回答下方的“出题”。
-3. 选择题型、题量和难度，然后点击“开始出题”。
-4. 使用单选框或复选框选择答案，再点击“提交答案”。
+3. 选择题型、题量和难度，然后点击“开始出题”；右侧抽屉立即打开，原对话不新增消息。
+4. 可以继续当前对话，也可以等待题目在抽屉中生成，然后使用单选框或复选框作答。
 5. 查看判题结果和解析。
 6. 需要保留时，可勾选“加入复习”，再点击“加入题库”。
 7. 点击左侧“题库”浏览、搜索或筛选已保存题目。
@@ -112,6 +114,8 @@ pnpm dsh web
 - 已保存题目使用当前 Web profile 配置的 DSH domain storage。
 - 未保存题目是有数量上限的进程内草稿；重启 DSH 后会被丢弃。
 - 题目会记录生成所依据的 AI 回答摘录和来源会话 ID。
+- 按钮出题只把所点回答发送给当前会话使用的模型路由，不发送整个聊天历史。
+- 辅助出题请求不写入聊天消息序列，也不会成为后续对话上下文。
 - 插件本身不提供外部同步、遥测或独立账号系统。
 - 生成内容仍由当前 DSH 模型提供商处理，适用其现有配置与隐私政策。
 
@@ -123,6 +127,22 @@ pnpm dsh web
 | `quiz_answer` | 按选项索引判题，并更新作答统计。 |
 | `quiz_save` | 保存指定草稿，并独立设置是否加入复习。 |
 | `quiz_list` | 按主题或复习状态查询已保存题目。 |
+
+Web UI 的“出题”按钮直接使用插件 Host 的辅助模型调用，不经过这些对话工具。`quiz_create_draft` 等工具保留给用户明确通过自然语言要求出题的场景。
+
+## 配置
+
+插件 bundle 默认配置如下，可在 DSH profile patch 中覆盖：
+
+```yaml
+maxDrafts: 50
+maxQuestionsPerBatch: 10
+maxSourceChars: 16000
+maxGenerationTokens: 4096
+generationTimeoutMs: 60000
+```
+
+`generationTimeoutMs` 同时约束模型请求；关闭题库抽屉也会主动取消当前请求。
 
 ## 当前限制
 
@@ -144,7 +164,7 @@ npx @deepseek-ai/dsh web
 
 ### 出题后没有生成题目
 
-确认 DSH 已配置模型 API Key，并检查当前模型是否允许调用 `quiz_create_draft` 工具。题目必须来自已完成且仍存在于当前会话日志中的 AI 回答。
+确认 DSH 已配置模型 API Key，并且所点回答仍存在于当前活动会话。按钮出题复用该会话最近一次模型请求的 provider 和 model；没有可用路由时会直接显示错误。
 
 ### 重启后草稿消失
 

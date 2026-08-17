@@ -4,3 +4,6 @@
       config:
         maxDrafts: 50
         maxQuestionsPerBatch: 10
+        maxSourceChars: 16000
+        maxGenerationTokens: 4096
+        generationTimeoutMs: 60000

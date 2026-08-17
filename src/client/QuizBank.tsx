@@ -1,9 +1,11 @@
 import { useEffect, useState, type JSX } from 'react'
 import type { QuizQuestion } from '../model.ts'
 import type { QuizClient } from './api.ts'
+import type { PracticeState } from './index.tsx'
+import { QuizPractice } from './QuizCard.tsx'
 import css from './quiz.module.css'
 
-export function QuizBank({ client, version, onClose }: { client: QuizClient; version: number; onClose: () => void }): JSX.Element {
+export function QuizBank({ client, version, practice, onBankChanged, onClose }: { client: QuizClient; version: number; practice: PracticeState; onBankChanged: () => void; onClose: () => void }): JSX.Element {
   const [items, setItems] = useState<QuizQuestion[]>([])
   const [query, setQuery] = useState('')
   const [reviewOnly, setReviewOnly] = useState(false)
@@ -31,6 +33,15 @@ export function QuizBank({ client, version, onClose }: { client: QuizClient; ver
           <label className={css.reviewFilter}><input type="checkbox" checked={reviewOnly} onChange={event => setReviewOnly(event.target.checked)} /><span>只看复习题</span></label>
         </div>
         <div className={css.bankBody}>
+          {practice.status !== 'idle' && (
+            <section className={css.practiceSection} aria-label="本次练习">
+              <div className={css.sectionHeading}><span>本次练习</span>{practice.status === 'ready' && <small>{practice.questions.length} 题</small>}</div>
+              {practice.status === 'loading' && <div className={css.practiceLoading}><span>✦</span><div><strong>正在生成题目</strong><p>你可以继续当前对话，题目会显示在这里。</p></div></div>}
+              {practice.status === 'error' && <div className={css.errorState}><strong>题目生成失败</strong><span>{practice.error}</span><span>请回到回答下方重新点击“出题”。</span></div>}
+              {practice.status === 'ready' && <QuizPractice questions={practice.questions} answer={(quizId, selected) => client.answer(quizId, selected)} save={async (quizId, reviewEnabled) => { await client.save(quizId, reviewEnabled) }} bankChanged={onBankChanged} />}
+            </section>
+          )}
+          <div className={css.sectionHeading}><span>已保存题目</span>{!loading && error === undefined && <small>{items.length} 题</small>}</div>
           {loading && <div className={css.empty}><span className={css.emptyIcon}>◌</span><strong>正在加载题库</strong></div>}
           {error !== undefined && <div className={css.errorState}><strong>题库暂时无法加载</strong><span>{error}</span><button type="button" className={css.secondaryButton} onClick={() => setRetry(value => value + 1)}>重新加载</button></div>}
           {!loading && error === undefined && items.length === 0 && <div className={css.empty}><span className={css.emptyIcon}>◇</span><strong>{reviewOnly ? '没有待复习的题目' : '题库还是空的'}</strong><span>{reviewOnly ? '关闭筛选即可查看全部题目。' : '在回答下方点击“出题”，答完后选择加入题库。'}</span></div>}

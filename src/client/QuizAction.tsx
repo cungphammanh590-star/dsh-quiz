@@ -60,7 +60,7 @@ export function QuizAction({ messageId, createQuiz }: Props): JSX.Element {
           {error !== undefined && <div className={css.error} role="alert">{error}</div>}
           <div className={css.actionFooter}>
             <button type="button" className={css.secondaryButton} onClick={() => setOpen(false)}>取消</button>
-            <button type="button" className={css.primaryButton} disabled={busy} onClick={submit}>{busy ? '正在发起…' : '开始出题'}</button>
+            <button type="button" className={css.primaryButton} disabled={busy} onClick={submit}>{busy ? '正在生成…' : '开始出题'}</button>
           </div>
         </div>
       )}

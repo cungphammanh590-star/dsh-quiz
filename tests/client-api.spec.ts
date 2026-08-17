@@ -9,6 +9,8 @@ describe('QuizClient', () => {
 
     await client.list('closures', true)
     await client.answer('quiz-1', [0])
+    const controller = new AbortController()
+    await client.generate('session-1', 'message-1', { type: 'single', count: 2, difficulty: 'medium' }, controller.signal)
 
     expect(call).toHaveBeenNthCalledWith(1, '/dsh-quiz-read', 'list', {
       topic: 'closures',
@@ -18,5 +20,12 @@ describe('QuizClient', () => {
       quizId: 'quiz-1',
       selectedAnswers: [0],
     })
+    expect(call).toHaveBeenNthCalledWith(3, '/dsh-quiz-write', 'generate', {
+      sessionId: 'session-1',
+      messageId: 'message-1',
+      type: 'single',
+      count: 2,
+      difficulty: 'medium',
+    }, controller.signal)
   })
 })
